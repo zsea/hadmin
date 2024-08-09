@@ -1,0 +1,1 @@
+With just one command, you can create an administrative backend.

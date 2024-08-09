@@ -1,0 +1,24 @@
+{
+  "name": "hadmin",
+  "version": "0.1.0",
+  "description": "",
+  "main": "server.js",
+  "bin": {
+    "hadmin": "main.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@koa/router": "^12.0.1",
+    "@zsea/amis-server": "^0.2.4",
+    "commander": "^12.1.0",
+    "koa": "^2.15.3",
+    "koa-asar": "^0.2.1",
+    "koa-bodyparser": "^4.4.1",
+    "linq2mysql": "^2.0.1"
+  }
+}
