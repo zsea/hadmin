@@ -37,7 +37,9 @@ async function Startup(options) {
     const watcher = new Event();
     const server = useAmisServer(apiRouter, options.db, options.secret, options.cookieName, watcher);
 
-    var app = new Koa();
+    var app = new Koa({
+        proxy: options.proxy === true
+    });
     app.use(bodyParser());
     if (options["log"]) {
         app.use(async function log(ctx, next) {
