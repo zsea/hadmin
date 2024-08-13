@@ -1,5 +1,5 @@
 {
-  "name": "hadmin",
+  "name": "@zsea/hadmin",
   "version": "0.1.0",
   "description": "",
   "main": "server.js",
