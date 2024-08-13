@@ -14,11 +14,12 @@
   "license": "ISC",
   "dependencies": {
     "@koa/router": "^12.0.1",
-    "@zsea/amis-server": "^0.2.4",
+    "@zsea/amis-server": "^0.3.0",
     "commander": "^12.1.0",
     "koa": "^2.15.3",
     "koa-asar": "^0.2.1",
     "koa-bodyparser": "^4.4.1",
+    "koa2-cors": "^2.0.6",
     "linq2mysql": "^2.0.1"
   }
 }

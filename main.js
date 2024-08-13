@@ -19,6 +19,9 @@ program.command("start")
     .option("--cookie [string]", "the name of the cookie for storing tokens.", "h-token")
     .option("--asar [string]", "asar file path")
     .option("-c, --config <string>", "path to the configuration file. the configuration file must be in JSON format.")
+    .option("--debug [boolean]", "print sql debug information.", false)
+    .option("--cors [boolean]", "allow cross-origin access.", false)
+    .option("--log [boolean]", "print web request log.", false)
     .action(function (options) {
         const opt = Object.assign({}, options);
         if (isNaN(opt.port)) {
@@ -33,8 +36,6 @@ program.command("init")
     .requiredOption("-d, --db <string>", "the database connection string.")
     .option("--db:type [string]", "the database type, only MySQL is supported.", "mysql")
     .action(function (options) {
-        //console.log('开始初始化数据库...',mysqlPath);
-        // console.log(db);
         Init(options);
     });
 async function Start(options) {
@@ -48,7 +49,11 @@ async function Start(options) {
         return;
 
     }
-    options.db = new Linq(options.db);
+    options.db = new Linq(options.db, function logger(sql) {
+        if (options["debug"]) {
+            console.log(sql);
+        }
+    });
     if (options.dbs) {
         const dbs = {};
         for (let key in options.dbs) {
@@ -61,7 +66,7 @@ async function Start(options) {
 }
 async function Init(options) {
     const sql = await fs.readFile(mysqlPath, { encoding: "utf-8" });
-    const db=new Linq(options.db);
+    const db = new Linq(options.db);
     await db.execute(sql);
     console.log('[HAdmin] Database initialization complete.');
     process.exit()
@@ -72,12 +77,3 @@ if (program.args.length === 0) {
     program.help();
     return;
 }
-
-// const command = process.argv[2];
-// if (command === "start") {
-//     Start();
-// }
-// else {
-//     //console.log('unknow command');
-//     console.table(["apples", "oranges", "bananas"]);
-// }

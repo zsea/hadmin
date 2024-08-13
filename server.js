@@ -6,6 +6,7 @@ var Koa = require('koa')
     , Asar = require("koa-asar")
     , path = require("path")
     , fs = require("fs").promises
+    , cors = require('koa2-cors')
     ;
 
 const { htmlPath, extendRouter, useAmisServer, useAuthenticate, Cloud, useUser } = require("@zsea/amis-server")
@@ -38,6 +39,21 @@ async function Startup(options) {
 
     var app = new Koa();
     app.use(bodyParser());
+    if (options["log"]) {
+        app.use(async function log(ctx, next) {
+            try {
+                await next();
+            }
+            catch (e) {
+                console.error(e);
+
+            }
+            console.log(`[web] [${ctx.status}] - [${ctx.request.ip}] [${ctx.request.method}] ${ctx.request.URL.pathname}${ctx.request.URL.search}`)
+        });
+    }
+    if (options["cors"] === true) {
+        app.use(cors());
+    }
     const logo = new Router();
     logo.get('/html/amis/logo.png', async function logo(ctx) {
         const png = options.logo;
@@ -47,10 +63,10 @@ async function Startup(options) {
         ctx.type = ext;
     });
     app.use(logo.routes());
-
-    for (const router_file of options.routers) {
-        const m = require(router_file);
-        const itemRouter = m(Router, { db: options.db, dbs: options.dbs }, useAuthenticate(options.db), useUser(options.secret, options.cookieName), watcher);
+    for (const router_file of options.router) {
+        let router = path.isAbsolute(router_file) ? router_file : path.join(process.cwd(), router_file);
+        const m = require(router);
+        const itemRouter = m(Router, { db: options.db, dbs: options.dbs, }, { server: server, options: options }, useAuthenticate(options.db), useUser(options.secret, options.cookieName), watcher);
         server.appendRouter(itemRouter);
         app.use(itemRouter.routes());
     }
