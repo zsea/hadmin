@@ -1,6 +1,6 @@
 {
   "name": "@zsea/hadmin",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "",
   "main": "server.js",
   "bin": {
@@ -14,7 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "@koa/router": "^12.0.1",
-    "@zsea/amis-server": "^0.3.2",
+    "@zsea/amis-server": "^0.3.3",
     "commander": "^12.1.0",
     "koa": "^2.15.3",
     "koa-asar": "^0.2.1",
