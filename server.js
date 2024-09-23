@@ -7,6 +7,7 @@ var Koa = require('koa')
     , path = require("path")
     , fs = require("fs").promises
     , cors = require('koa2-cors')
+    , cServices={}
     ;
 
 const { htmlPath, extendRouter, useAmisServer, useAuthenticate, Cloud, useUser } = require("@zsea/amis-server")
@@ -29,6 +30,15 @@ async function Startup(options) {
     options.cookieName = options.cookieName || "h-token";
     options.routers = options.routers || [];
     options.logo = options.logo || path.join(__dirname, "logo.png");
+
+    if(options.services){
+        for (const sf of options.services) {
+            let service_file = path.isAbsolute(sf) ? sf : path.join(process.cwd(), sf);
+            const s=require(service_file);
+            cServices[s.name]=s;
+            s.Startup(options);
+        }
+    }
 
     extendRouter(Router, useAuthenticate(options.db), useUser(options.secret));
     var apiRouter = new Router({
@@ -80,13 +90,15 @@ async function Startup(options) {
     app.use(m);
     app.use(apiRouter.routes()).use(apiRouter.allowedMethods());
     app.use(Asar(htmlPath, { "root": "/html", index: "index.html", default: "master.html" }));
-    app.listen(options.port, function (err) {
+    app.listen(options.port,options.hostname, function (err) {
         if (err) {
             console.error('HAdmin server startup error', err);
             process.exit(1);
         }
         else {
-            console.log('HAdmin server startup in :', options.port)
+            let hostname=options.hostname;
+            if(hostname.includes(":")) hostname=`[${hostname}]`
+            console.log(`[${process.pid}] HAdmin server startup in : ${hostname}:${options.port}`)
         }
     });
 }
