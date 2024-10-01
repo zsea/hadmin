@@ -1,31 +1,35 @@
 #!/usr/bin/env node
 
-const Linq = require("linq2mysql"), server = require("./server"), fs = require("fs").promises, os = require('os'), cluster = require('cluster'), path = require("path"), fsSync = require("fs");
+const Linq = require("linq2mysql"), server = require("./server"), fs = require("fs"), os = require('os'), cluster = require('cluster'), path = require("path");
 const package = require("./package.json"), { mysqlPath } = require("@zsea/amis-server");
 const { Command } = require('commander');
+
 const program = new Command();
+function command_helper(command) {
+    return command.option("-h,--hostname [string]", "the listening hostname.", "::")
+        .option("-d, --db <string>", "the database connection string.")
+        .option("--db:type [string]", "the database type, only MySQL is supported.", "mysql")
+        .option("-p, --port [number]", "web service port.", 8080)
+        .option("-s, --secret [string]", "secret key used for generating tokens.", "hadmin")
+        .option("-r, --router [string...]", "custom route file.", [])
+        .option("-n, --name [string]", "the service name.")
+        .option("-i, --workers [number|string]", "number of worker processes.")
+        .option("--logo [string]", "custom logo icon file.")
+        .option("--cookie [string]", "the name of the cookie for storing tokens.", "h-token")
+        .option("--asar [string]", "asar file path")
+        .option("-c, --config <string>", "path to the configuration file. the configuration file must be in JSON format.")
+        .option("--proxy [boolean]", "is it located behind a proxy server, such as Nginx?", false)
+        .option("--debug [boolean]", "print sql debug information.", false)
+        .option("--cors [boolean]", "allow cross-origin access.", false)
+        .option("--log [boolean]", "print web request log.", false)
+        .option("--services [string...]", "customized service", [])
+        ;
+}
 program.name("hadmin")
     .description('Create an administrative backend with a single command.')
     .version(package.version);
-program.command("start")
-    .description("Launch the management backend.")
-    .option("-h,--hostname [string]", "the listening hostname.", "::")
-    .option("-d, --db <string>", "the database connection string.")
-    .option("--db:type [string]", "the database type, only MySQL is supported.", "mysql")
-    .option("-p, --port [number]", "web service port.", 8080)
-    .option("-s, --secret [string]", "secret key used for generating tokens.", "hadmin")
-    .option("-r, --router [string...]", "custom route file.", [])
-    .option("-n, --name [string]", "the service name.")
-    .option("-i, --workers [number|string]", "number of worker processes.")
-    .option("--logo [string]", "custom logo icon file.")
-    .option("--cookie [string]", "the name of the cookie for storing tokens.", "h-token")
-    .option("--asar [string]", "asar file path")
-    .option("-c, --config <string>", "path to the configuration file. the configuration file must be in JSON format.")
-    .option("--proxy [boolean]", "is it located behind a proxy server, such as Nginx?", false)
-    .option("--debug [boolean]", "print sql debug information.", false)
-    .option("--cors [boolean]", "allow cross-origin access.", false)
-    .option("--log [boolean]", "print web request log.", false)
-    .option("--services [string...]","customized service",[])
+command_helper(program.command("start")
+    .description("Launch the management backend."))
     .action(function (options) {
         const opt = Object.assign({}, options);
         if (isNaN(opt.port)) {
@@ -33,6 +37,47 @@ program.command("start")
         }
         opt.port = parseInt(opt.port)
         Start(opt)
+    })
+    ;
+command_helper(program.command("install")
+    .description("Install as a system service."))
+    .option("--user [string]","User for starting the service.","root")
+    .option("--group [string]","User group for starting the service.","root")
+    .option("--restart <string>","Service restart parameter settings.","always")
+    .action(function (options) {
+        if(os.platform()!=="linux"){
+            console.log(`error: Only supports Linux`);
+            process.exit();
+        }
+        if(!options["name"]||!options["name"].length){
+            console.log(`error: option '-p, --port' must is a number`);
+            process.exit();
+        }
+        const opt = Object.assign({}, options);
+        if (isNaN(opt.port)) {
+            console.log(`error: option '-n, --name' must is a string`);
+            process.exit();
+        }
+        opt.port = parseInt(opt.port)
+        const argv=[...process.argv];
+        argv[2]="start"
+        const services=[
+            "[Unit]",
+            "Description=HAdmin Service",
+            "After=network.target",
+            "",
+            "[Service]",
+            `ExecStart=${argv.join(' ')}`,
+            `WorkingDirectory=${process.cwd()}`,
+            `User=${opt.user}`,
+            `Group=${opt.group}`,
+            `Restart=${opt.restart}`,
+            "",
+            "[Install]",
+            "WantedBy=multi-user.target"
+        ];
+        fs.writeFileSync(`/etc/systemd/system/${opt.name}.service`,services.join("\n"));
+        console.log(`The service has been installed successfully. \nYou can use systemctl enable ${opt.name}.service to add it to the startup sequence.`);
     })
     ;
 program.command("init")
@@ -47,7 +92,7 @@ program.command("status")
 async function Start(options) {
     if (options["config"]) {
         const config = options["config"]
-        const txt = await fs.readFile(options["config"], { encoding: "utf-8" });
+        const txt = await fs.promises.readFile(options["config"], { encoding: "utf-8" });
         options = JSON.parse(txt);
         options["config"] = config;
     }
@@ -119,7 +164,7 @@ async function Start(options) {
     server.Startup(options);
 }
 async function Init(options) {
-    const sql = await fs.readFile(mysqlPath, { encoding: "utf-8" });
+    const sql = await fs.promises.readFile(mysqlPath, { encoding: "utf-8" });
     const db = new Linq(options.db);
     await db.execute(sql);
     console.log('[HAdmin] Database initialization complete.');
@@ -128,9 +173,9 @@ async function Init(options) {
 async function Status(options) {
     const USER_HOME = process.env.HOME || process.env.USERPROFILE;
     const pidPath = path.join(USER_HOME, ".hadmin/runing");
-    const pids=(await fs.readdir(pidPath)).filter(x=>x.endsWith(".pid")).map(x=>Number(x.replace(".pid","")));
-    pids.forEach(pid=>process.kill(pid,"SIGPIPE"))
-    
+    const pids = (await fs.promises.readdir(pidPath)).filter(x => x.endsWith(".pid")).map(x => Number(x.replace(".pid", "")));
+    pids.forEach(pid => process.kill(pid, "SIGPIPE"))
+
 }
 program.parse();
 
