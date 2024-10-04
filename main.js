@@ -33,7 +33,7 @@ command_helper(program.command("start")
     .action(function (options) {
         const opt = Object.assign({}, options);
         if (isNaN(opt.port)) {
-            console.log(`error: option '-p, --port' must is a number`);
+            console.log(`error: option '-p, --port' must is a number.`);
         }
         opt.port = parseInt(opt.port)
         Start(opt)
@@ -44,18 +44,19 @@ command_helper(program.command("install")
     .option("--user [string]","User for starting the service.","root")
     .option("--group [string]","User group for starting the service.","root")
     .option("--restart <string>","Service restart parameter settings.","always")
+    .option("-a, --auto [boolean]","Whether to automatically start at boot time.",false)
     .action(function (options) {
         if(os.platform()!=="linux"){
             console.log(`error: Only supports Linux`);
             process.exit();
         }
         if(!options["name"]||!options["name"].length){
-            console.log(`error: option '-p, --port' must is a number`);
+            console.log(`error: option '-n, --name' can't empty.`);
             process.exit();
         }
         const opt = Object.assign({}, options);
         if (isNaN(opt.port)) {
-            console.log(`error: option '-n, --name' must is a string`);
+            console.log(`error: option '-p, --port' must is a number.`);
             process.exit();
         }
         opt.port = parseInt(opt.port)
@@ -77,7 +78,11 @@ command_helper(program.command("install")
             "WantedBy=multi-user.target"
         ];
         fs.writeFileSync(`/etc/systemd/system/${opt.name}.service`,services.join("\n"));
-        console.log(`The service has been installed successfully. \nYou can use systemctl enable ${opt.name}.service to add it to the startup sequence.`);
+        fs.chmod(`/etc/systemd/system/${opt.name}.service`,755,function(){})
+        if(opt.auto){
+            fs.symlink(`/etc/systemd/system/${opt.name}.service`,`/etc/systemd/system/multi-user.target.wants/${opt.name}.service`,"file",function(){});
+        }
+        console.log(`The service has been installed successfully. \nYou need to use systemctl start ${opt.name}.service to start the service.`);
     })
     ;
 program.command("init")
