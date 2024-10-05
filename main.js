@@ -41,8 +41,8 @@ command_helper(program.command("start")
     ;
 command_helper(program.command("install")
     .description("Install as a system service."))
-    .option("--user [string]","User for starting the service.","root")
-    .option("--group [string]","User group for starting the service.","root")
+    .option("--user [string]","User for starting the service.","nobody")
+    .option("--group [string]","User group for starting the service.","nobody")
     .option("--restart <string>","Service restart parameter settings.","always")
     .option("-a, --auto [boolean]","Whether to automatically start at boot time.",false)
     .action(function (options) {
