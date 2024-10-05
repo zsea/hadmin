@@ -41,16 +41,16 @@ command_helper(program.command("start")
     ;
 command_helper(program.command("install")
     .description("Install as a system service."))
-    .option("--user [string]","User for starting the service.","nobody")
-    .option("--group [string]","User group for starting the service.","nobody")
-    .option("--restart <string>","Service restart parameter settings.","always")
-    .option("-a, --auto [boolean]","Whether to automatically start at boot time.",false)
+    .option("--user [string]", "User for starting the service.", "nobody")
+    .option("--group [string]", "User group for starting the service.", "nobody")
+    .option("--restart <string>", "Service restart parameter settings.", "always")
+    .option("-a, --auto [boolean]", "Whether to automatically start at boot time.", false)
     .action(function (options) {
-        if(os.platform()!=="linux"){
+        if (os.platform() !== "linux") {
             console.log(`error: Only supports Linux`);
             process.exit();
         }
-        if(!options["name"]||!options["name"].length){
+        if (!options["name"] || !options["name"].length) {
             console.log(`error: option '-n, --name' can't empty.`);
             process.exit();
         }
@@ -60,9 +60,30 @@ command_helper(program.command("install")
             process.exit();
         }
         opt.port = parseInt(opt.port)
-        const argv=[...process.argv];
-        argv[2]="start"
-        const services=[
+        const argv = [process.argv[0], process.argv[1], "start"];
+        argv[2] = "start"
+        for (const key in opt) {
+            if(["restart","auto","group","user"].includes(key)) continue;
+            const v = opt[key];
+            if (v === true) {
+                argv.push("--" + key);
+            }
+            else if(v===false){
+                continue;
+            }
+            else if (Array.isArray(v)) {
+                for (const item of v) {
+                    argv.push("--" + key);
+                    argv.push(item);
+                }
+            }
+            else {
+                argv.push("--" + key);
+                argv.push(opt[key]);
+            }
+
+        }
+        const services = [
             "[Unit]",
             "Description=HAdmin Service",
             "After=network.target",
@@ -77,12 +98,12 @@ command_helper(program.command("install")
             "[Install]",
             "WantedBy=multi-user.target"
         ];
-        fs.writeFileSync(`/etc/systemd/system/${opt.name}.service`,services.join("\n"));
-        fs.chmod(`/etc/systemd/system/${opt.name}.service`,755,function(){})
-        if(opt.auto){
-            fs.symlink(`/etc/systemd/system/${opt.name}.service`,`/etc/systemd/system/multi-user.target.wants/${opt.name}.service`,"file",function(){});
+        fs.writeFileSync(`/etc/systemd/system/${opt.name}.service`, services.join("\n"));
+        fs.chmod(`/etc/systemd/system/${opt.name}.service`, 755, function () { })
+        if (opt.auto) {
+            fs.symlink(`/etc/systemd/system/${opt.name}.service`, `/etc/systemd/system/multi-user.target.wants/${opt.name}.service`, "file", function () { });
         }
-        console.log(`The service has been installed successfully. \nYou need to use systemctl start ${opt.name}.service to start the service.`);
+        console.log(`The service has been installed successfully. \nYou need to use systemctl daemon-reload and systemctl start ${opt.name}.service to start the service.`);
     })
     ;
 program.command("init")
