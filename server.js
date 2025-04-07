@@ -7,6 +7,7 @@ var Koa = require('koa')
     , path = require("path")
     , fs = require("fs").promises
     , cors = require('koa2-cors')
+    , package=require("./package.json")
     , cServices={}
     ;
 
@@ -49,6 +50,11 @@ async function Startup(options) {
 
     var app = new Koa({
         proxy: options.proxy === true
+    });
+    app.use(async function(ctx,next) {
+        //ctx.headers["x-server"]="hadmin"
+        ctx.set('x-server', 'hadmin/'+package.version);
+        await next();
     });
     app.use(bodyParser());
     if (options["log"]) {
