@@ -81,7 +81,7 @@ async function Startup(options) {
         ctx.type = ext;
     });
     app.use(logo.routes());
-    for (const router_file of options.router) {
+    for (const router_file of options.routers) {
         let router = path.isAbsolute(router_file) ? router_file : path.join(process.cwd(), router_file);
         const m = require(router);
         const itemRouter = m(Router, { db: options.db, dbs: options.dbs, }, { server: server, options: options }, useAuthenticate(options.db), useUser(options.secret, options.cookieName), watcher);
@@ -102,7 +102,7 @@ async function Startup(options) {
             process.exit(1);
         }
         else {
-            let hostname=options.hostname;
+            let hostname=options.hostname||"::";
             if(hostname.includes(":")) hostname=`[${hostname}]`
             console.log(`[${process.pid}] HAdmin server startup in : ${hostname}:${options.port}`)
         }
