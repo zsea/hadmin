@@ -3,6 +3,12 @@
   "version": "0.4.8-beta.1",
   "description": "",
   "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zsea/hadmin/tree/status-dev"
+  },
+  "bugs": "https://github.com/zsea/hadmin/issues",
+  "homepage": "https://www.hadmin.cn/",
   "bin": {
     "hadmin": "main.js"
   },
