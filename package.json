@@ -5,7 +5,7 @@
   "main": "server.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zsea/hadmin/tree/status-dev"
+    "url": "https://github.com/zsea/hadmin/"
   },
   "bugs": "https://github.com/zsea/hadmin/issues",
   "homepage": "https://www.hadmin.cn/",
