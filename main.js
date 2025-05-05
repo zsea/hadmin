@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const Linq = require("linq2mysql"), server = require("./server"), fs = require("fs"), os = require('os'), cluster = require('cluster'), path = require("path");
-const package = require("./package.json"), { mysqlPath } = require("@zsea/amis-server");
+const package = require("./package.json"), { mysqlPath } = require("@zsea/amis-server"), status = require("./status");
 const { Command } = require('commander');
 
 const program = new Command();
@@ -63,12 +63,12 @@ command_helper(program.command("install")
         const argv = [process.argv[0], process.argv[1], "start"];
         argv[2] = "start"
         for (const key in opt) {
-            if(["restart","auto","group","user"].includes(key)) continue;
+            if (["restart", "auto", "group", "user"].includes(key)) continue;
             const v = opt[key];
             if (v === true) {
                 argv.push("--" + key);
             }
-            else if(v===false){
+            else if (v === false) {
                 continue;
             }
             else if (Array.isArray(v)) {
@@ -114,8 +114,10 @@ program.command("init")
         Init(options);
     });
 program.command("status")
-    .description("show the status of the specified instance.").action(Status)
+    .description("view all running instances.").action(Status)
+
 async function Start(options) {
+    
     if (options["config"]) {
         const config = options["config"]
         const txt = await fs.promises.readFile(options["config"], { encoding: "utf-8" });
@@ -128,32 +130,6 @@ async function Start(options) {
     }
 
     if (options.workers && cluster.isPrimary) {
-
-        // const USER_HOME = process.env.HOME || process.env.USERPROFILE;
-        // const dir = path.join(USER_HOME, ".hadmin/runing");
-        // await fs.mkdir(dir, { recursive: true });
-        // const pidFile = path.join(dir, process.pid + ".pid");
-        // await fs.rm(pidFile).catch(() => { });
-        // const file = await fsSync.openSync(pidFile, "wx");
-        // fsSync.writeFileSync(file, JSON.stringify(options));
-        // ['SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGABRT', 'SIGTERM'].forEach(function (signal) {
-        //     process.addListener(signal, function () {
-        //         fsSync.writeFileSync(file,"xxxxx");
-        //         //fs.writeFile
-        //         fsSync.closeSync(file)
-        //         try {
-        //             fsSync.unlinkSync(pidFile);
-        //         }
-        //         catch (e) {
-        //             console.error(e);
-        //         }
-        //         finally {
-        //             process.exit();
-        //         }
-
-        //     });
-        // });
-
         let nums = options.workers === "max" ? os.cpus().length : Number(options.workers);
         if (isNaN(nums)) {
             console.log("option '-i, --workers' error");
@@ -172,6 +148,7 @@ async function Start(options) {
         // process.addListener("SIGPIPE", function () {
         //     console.log("SIGPIPE")
         // });
+
         return
     }
 
@@ -191,17 +168,56 @@ async function Start(options) {
 }
 async function Init(options) {
     const sql = await fs.promises.readFile(mysqlPath, { encoding: "utf-8" });
-    const db = new Linq(options.db);
+    let db_conn=new URL(options.db);
+    db_conn.searchParams.set("multipleStatements","true");
+    const db = new Linq(db_conn.toString());
     await db.execute(sql);
     console.log('[HAdmin] Database initialization complete.');
     process.exit()
 }
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+  
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+  }
 async function Status(options) {
-    const USER_HOME = process.env.HOME || process.env.USERPROFILE;
-    const pidPath = path.join(USER_HOME, ".hadmin/runing");
-    const pids = (await fs.promises.readdir(pidPath)).filter(x => x.endsWith(".pid")).map(x => Number(x.replace(".pid", "")));
-    pids.forEach(pid => process.kill(pid, "SIGPIPE"))
+    const request = status.request;
+    let response;
+    try {
+        response = await request.get("/");
+    }
+    catch (e) {
 
+    }
+    if (!response || response.statusCode !== 200) {
+        console.log("no services.");
+        return
+    };
+    let body = JSON.parse(response.data);
+    if (!body.success) {
+        console.log("no services.");
+        return
+    };
+    let data = body.data;
+    if (!data.length) {
+        console.log("no services.");
+        return
+    }
+    data=data.map(x=>{
+        x.ctime=formatTimestamp(x.ctime);
+        //x.mtime=formatTimestamp(x.mtime);
+        delete x.mtime;
+        return x;
+    });
+    
+    status.table(data)
 }
 program.parse();
 

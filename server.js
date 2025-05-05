@@ -7,11 +7,13 @@ var Koa = require('koa')
     , path = require("path")
     , fs = require("fs").promises
     , cors = require('koa2-cors')
-    , package=require("./package.json")
-    , cServices={}
+    , package = require("./package.json")
+    , cServices = {}
+    , sync_status = require("./status").sync_status
+    , cluster = require('cluster')
     ;
 
-const { htmlPath, extendRouter, useAmisServer, useAuthenticate, Cloud, useUser } = require("@zsea/amis-server")
+const { htmlPath, extendRouter, useAmisServer, useAuthenticate, Cloud, useUser } = require("@zsea/amis-server");
 /**
  * 启动服务
  * @param {Object} options - 参数
@@ -32,11 +34,11 @@ async function Startup(options) {
     options.routers = options.routers || [];
     options.logo = options.logo || path.join(__dirname, "logo.png");
 
-    if(options.services){
+    if (options.services) {
         for (const sf of options.services) {
             let service_file = path.isAbsolute(sf) ? sf : path.join(process.cwd(), sf);
-            const s=require(service_file);
-            cServices[s.name]=s;
+            const s = require(service_file);
+            cServices[s.name] = s;
             s.Startup(options);
         }
     }
@@ -51,9 +53,9 @@ async function Startup(options) {
     var app = new Koa({
         proxy: options.proxy === true
     });
-    app.use(async function(ctx,next) {
+    app.use(async function (ctx, next) {
         //ctx.headers["x-server"]="hadmin"
-        ctx.set('x-server', 'hadmin/'+package.version);
+        ctx.set('x-server', 'hadmin/' + package.version);
         await next();
     });
     app.use(bodyParser());
@@ -96,17 +98,29 @@ async function Startup(options) {
     app.use(m);
     app.use(apiRouter.routes()).use(apiRouter.allowedMethods());
     app.use(Asar(htmlPath, { "root": "/html", index: "index.html", default: "master.html" }));
-    app.listen(options.port,options.hostname, function (err) {
+    app.listen(options.port, options.hostname, function (err) {
         if (err) {
             console.error('HAdmin server startup error', err);
             process.exit(1);
         }
         else {
-            let hostname=options.hostname||"::";
-            if(hostname.includes(":")) hostname=`[${hostname}]`
+            let hostname = options.hostname || "::";
+            if (hostname.includes(":")) hostname = `[${hostname}]`
             console.log(`[${process.pid}] HAdmin server startup in : ${hostname}:${options.port}`)
         }
     });
+    if (!options.workers || (options.workers && cluster.isPrimary)) {
+        sync_status({
+            pid: process.pid,
+            hostname: options.hostname,
+            port: options.port,
+            workers: options.workers,
+            name: options.name,
+            debug: options.debug,
+            cors: options.cors,
+            work_directory: process.cwd()
+        });
+    }
 }
 
 module.exports = {
