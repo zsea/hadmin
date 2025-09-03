@@ -23,7 +23,7 @@ function command_helper(command) {
         .option("--cors [boolean]", "allow cross-origin access.", false)
         .option("--log [boolean]", "print web request log.", false)
         .option("--services [string...]", "customized service", [])
-        .option("--amis","Host server for AMIS resources","")
+        .option("--amis [string]","Host server for AMIS resources","")
         ;
 }
 program.name("hadmin")
@@ -35,6 +35,7 @@ command_helper(program.command("start")
         const opt = Object.assign({}, options);
         if (isNaN(opt.port)) {
             console.log(`error: option '-p, --port' must is a number.`);
+            return
         }
         opt.port = parseInt(opt.port)
         Start(opt)

@@ -1,6 +1,6 @@
 {
   "name": "@zsea/hadmin",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "",
   "main": "server.js",
   "repository": {
@@ -13,7 +13,7 @@
     "hadmin": "main.js"
   },
   "scripts": {
-    "test": "node test.js",
+    "test": "node main.js start --amis https://cdn.jsdelivr.net/gh/zsea/amins-server-files@master/0.4.1 --db mysql://root@127.0.0.1/amis",
     "p":"npm publish --access=public"
   },
   "keywords": [],
