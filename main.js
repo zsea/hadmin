@@ -23,6 +23,7 @@ function command_helper(command) {
         .option("--cors [boolean]", "allow cross-origin access.", false)
         .option("--log [boolean]", "print web request log.", false)
         .option("--services [string...]", "customized service", [])
+        .option("--amis","Host server for AMIS resources","")
         ;
 }
 program.name("hadmin")

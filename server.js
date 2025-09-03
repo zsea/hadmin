@@ -21,6 +21,7 @@ const { htmlPath, extendRouter, useAmisServer, useAuthenticate, Cloud, useUser }
  * @param {string} options.secret? - 生成JWT的Secret字符串
  * @param {number} options.port? - 运行端口
  * @param {string} options.cookieName? - 存储jwt的cookie name
+ * @param {string} options.amis? - amis资源所在服务器
  * @param {string[]} options.routers? - 自定义的路由对象
  */
 async function Startup(options) {
@@ -74,15 +75,18 @@ async function Startup(options) {
     if (options["cors"] === true) {
         app.use(cors());
     }
-    const logo = new Router();
-    logo.get('/html/amis/logo.png', async function logo(ctx) {
+    const resources = new Router();
+    resources.get('/html/amis/logo.png', async function logo(ctx) {
         const png = options.logo;
         const content = await fs.readFile(png);
         ctx.body = content;
         const ext = path.extname(png);
         ctx.type = ext;
     });
-    app.use(logo.routes());
+    resources.get("/api/amis/host", async function host(ctx) {
+        ctx.body = { success: true, data: { host: options.amis } }
+    })
+    app.use(resources.routes());
     for (const router_file of options.routers) {
         let router = path.isAbsolute(router_file) ? router_file : path.join(process.cwd(), router_file);
         const m = require(router);
